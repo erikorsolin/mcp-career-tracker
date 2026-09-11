@@ -1,0 +1,16 @@
+# ============================================================
+# CareerTracker MCP - Dependências
+# Python >= 3.10 é exigido pelo SDK oficial do MCP.
+# ============================================================
+
+# SDK oficial do Model Context Protocol.
+# O server.py usa a classe FastMCP embutida neste pacote (mcp.server.fastmcp).
+# ATENÇÃO: no mcp 2.x a classe foi renomeada para MCPServer e o caminho
+# mcp.server.fastmcp deixou de existir. Por isso a versão fica travada em 1.x.
+# O extra [cli] instala o comando "mcp dev" e o MCP Inspector para depuração.
+mcp[cli]>=1.9.0,<2.0.0
+
+# FastMCP standalone (jlowin/fastmcp). Não é obrigatório para o server.py atual,
+# mas fica disponível para uma migração futura (from fastmcp import FastMCP).
+# A série 2.x é a compatível com mcp 1.x; a 3.x+ exige mcp 2.x.
+fastmcp>=2.10.0,<3.0.0
