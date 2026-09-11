@@ -8,17 +8,16 @@
 # ============================================================
 
 # ---------- Dados estratégicos (bloqueio estrito) ----------
-# Sem barra inicial: o padrão vale em qualquer profundidade do repositório.
-career_log.json
-dominio_financeiro.json
-data/*.json
-data/*.jsonl
-data/*.bak
-# Backups e exportações eventuais
-*.backup.json
-brag_document*.md
+# Tudo dentro de data/: registros .md, subpastas e configuração do Obsidian
+# (.obsidian/, .trash/).
+data/**
 # Mantém a pasta data/ no repositório, mas vazia
 !data/.gitkeep
+# Relatórios exportados eventualmente
+brag_document*.md
+# Configuração local do Obsidian (ex: ao abrir examples/data-exemplo como cofre)
+.obsidian/
+.trash/
 
 # ---------- Segredos e variáveis de ambiente ----------
 .env

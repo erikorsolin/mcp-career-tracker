@@ -1,27 +1,68 @@
 # CareerTracker MCP
 
-Servidor [MCP](https://modelcontextprotocol.io) local que dá ao Claude Code memória persistente sobre a sua carreira: um glossário do domínio em que você atua e um diário de impacto no formato STAR, com geração de Brag Documents para reuniões de 1:1.
+Servidor [MCP](https://modelcontextprotocol.io) local que funciona como um **oráculo de tudo o que você faz dentro de uma organização**: entregas e seus impactos, decisões, feedbacks, compromissos, o glossário do negócio e as pessoas com quem você trabalha.
 
-O servidor é **agnóstico a área, empresa e setor**. Ele só persiste e lê JSON. Quem especializa o sistema é o que fica ao redor dele:
+O escopo é **uma empresa**, não a carreira inteira. A ideia é facilitar relatórios, reuniões com a gerência e a diretoria, o crescimento dentro da empresa e o entendimento do modelo de negócio.
+
+Cada registro é um arquivo Markdown. A pasta `data/` pode ser aberta no [Obsidian](https://obsidian.md) para ver o grafo da organização.
+
+> Guia completo com exemplos de cada caso de uso: [`doc/casos-de-uso.md`](doc/casos-de-uso.md)
+
+## Uso no dia a dia
+
+Você só precisa fazer três coisas, sempre em linguagem natural:
+
+1. **Contar o que aconteceu.** O Claude decide se é entrega, decisão, feedback, compromisso, conceito ou pessoa.
+2. **Perguntar.** "O que já fiz no motor de crédito?", "Por que trocamos de bureau?"
+3. **Pedir um documento.** "Prepara meu 1:1", "Relatório do trimestre", "Dossiê para promoção".
+
+```
+Você:   hoje a diretoria decidiu contratar um segundo bureau de crédito por risco de indisponibilidade
+Claude: registrei como decisão, ligada a [[Bureau de crédito]] e [[BACEN]].
+
+Você:   terminei o monitoramento sintético do bureau, ainda não tenho números
+Claude: registrei a entrega como "aguardando métrica". Ela fica nas pendências até ter o número.
+
+Você:   prepara meu 1:1 de amanhã com a liderança técnica
+Claude: [busca entregas, decisões, feedbacks e compromissos do período e monta a pauta]
+```
+
+## Como funciona
 
 | Camada | Responsabilidade | Onde vive |
 |---|---|---|
-| **Agente** | O "chapéu" da IA: papel, regras, fluxo, tom | `~/.claude/agents/` (nível de usuário, fora deste repositório) |
-| **Servidor MCP** | Persistência genérica, sem regra de negócio | `server.py` |
-| **Dados** | Vocabulário e histórico da sua área | `data/*.json` (ignorado pelo git) |
+| **Skill** | Como a IA usa o servidor: papel, regras (ex: métrica obrigatória), fluxo, tom | `~/.claude/skills/` (fora deste repositório) |
+| **Servidor MCP** | Grava, busca e liga registros. Sem regra de negócio | `server.py` |
+| **Dados** | Os fatos da sua empresa, um `.md` por registro | `data/` (ignorado pelo git) |
 
-Trocar de setor ou de objetivo é trocar o agente e o glossário. O servidor não muda.
+O servidor é agnóstico a área, empresa e setor. Para trocar de contexto, troque a skill e a pasta de dados.
 
 ## Ferramentas
 
 | Ferramenta | O que faz |
 |---|---|
-| `mapear_conceito_dominio(termo, definicao, importancia_estrategica)` | Grava um conceito no glossário. |
-| `consultar_base_de_negocios()` | Retorna o glossário completo. |
-| `registrar_impacto_diario(situacao, tarefa, acao, resultado, metrica_negocio)` | Anexa um registro STAR datado ao diário. |
-| `gerar_brag_document(dias=30)` | Monta o relatório em Markdown dos últimos N dias. |
+| `registrar(tipo, titulo, conteudo, ...)` | Cria um registro. Tipos: `entrega`, `decisao`, `feedback`, `compromisso`, `conceito`, `pessoa`. Aceita `data` passada, `metrica`, `relacionados`, `prazo`, `pessoa`, `categoria`, `aliases`, `tags`. |
+| `atualizar(id, ...)` | Altera só os campos informados. `acrescentar` adiciona uma seção datada sem apagar o histórico. Renomear um conceito ou pessoa corrige os links em todos os registros. |
+| `buscar(texto, tipo, de, ate, status, relacionado, detalhado, limite)` | Consulta com filtros combináveis. `relacionado="BaaS"` traz tudo que cita o BaaS. |
+| `pendencias()` | Entregas aguardando métrica, compromissos em aberto (vencidos e próximos) e termos citados sem página no glossário. |
 
-O servidor não valida métricas nem obriga a consulta ao glossário antes de um registro. Essas regras pertencem ao agente.
+Regras do próprio servidor, que valem com ou sem a skill:
+- entrega sem `metrica` fica com status `aguardando_metrica`;
+- conceitos e pessoas não são sobrescritos (nem por alias);
+- `[[baas]]` é gravado como `[[BaaS|baas]]`, para que aliases e variações de maiúsculas resolvam no Obsidian.
+
+## Prompts (relatórios prontos)
+
+Modelos que orientam a IA a buscar os dados certos e montar o documento. No Claude Code, digite `/` e procure por `career-tracker`:
+
+| Prompt | Argumentos | Resultado |
+|---|---|---|
+| `preparar_1on1` | `audiencia` (`tecnica`/`executiva`), `dias` | Três temas de impacto, abertura, compromissos, ponto de desenvolvimento e pedidos |
+| `relatorio_periodo` | `de`, `ate`, `audiencia` | Resumo executivo, resultados por tema, decisões e impacto a medir |
+| `dossie_promocao` | `nivel_alvo` | Tabela competência x evidência, lacunas e narrativa de promoção |
+| `briefing_stakeholder` | `pessoa` | O que a pessoa valoriza, histórico, entregas relacionadas e compromissos |
+
+Exemplo: `/mcp__career-tracker__preparar_1on1 executiva 30`
 
 ## Instalação (Ubuntu)
 
@@ -44,136 +85,117 @@ Use caminhos absolutos para que o servidor funcione a partir de qualquer pasta.
 claude mcp add --scope user career-tracker -- "$(pwd)/venv/bin/python" "$(pwd)/server.py"
 ```
 
-Confira com `claude mcp list` ou, dentro de uma sessão, com `/mcp`.
+Confira com `claude mcp list` ou, dentro de uma sessão, com `/mcp`. Depois de atualizar o `server.py`, reconecte o servidor pelo `/mcp`.
 
-Variáveis de ambiente opcionais (passe com `-e NOME=valor` no `claude mcp add`):
+Variável de ambiente opcional (passe com `-e NOME=valor` no `claude mcp add`):
 
 | Variável | Padrão | Função |
 |---|---|---|
-| `CAREER_TRACKER_DATA_DIR` | `data/` ao lado do `server.py` | Diretório dos JSONs (ex: uma pasta criptografada) |
-| `CAREER_TRACKER_LOG_FILE` | `career_log.json` | Nome do diário STAR |
-| `CAREER_TRACKER_DOMAIN_FILE` | `dominio_financeiro.json` | Nome do glossário |
+| `CAREER_TRACKER_DATA_DIR` | `data/` ao lado do `server.py` | Pasta dos registros (ex: uma pasta criptografada) |
 
-> **Segurança:** os JSONs em `data/` contêm vocabulário interno e métricas da empresa. Estão no `.gitignore` e nunca devem ser versionados nem compartilhados.
+> **Segurança:** os arquivos em `data/` contêm informação interna da empresa. A pasta inteira está no `.gitignore`. Não a coloque em sincronização de nuvem pessoal (Obsidian Sync, Google Drive, Dropbox) sem checar a política da empresa.
 
-## Criando o agente no nível de usuário
+## Instalando a skill
 
-O agente não faz parte do servidor. Ele é um arquivo Markdown em `~/.claude/agents/`, disponível em todos os seus projetos, que sabe quando e como chamar as ferramentas acima.
-
-Este repositório traz um exemplo pronto, um **Conselheiro Executivo de Carreira** para QA no setor financeiro com estratégia Dual-Track (profundidade técnica para a gerência de engenharia, impacto de negócio para a diretoria). Ele bloqueia registros sem métrica de negócio e sempre consulta o glossário antes de gravar.
+A skill ensina o Claude a usar o servidor: quando registrar cada tipo de fato, como escrever uma entrega em STAR, quando exigir métrica e como montar um 1:1. Este repositório traz um exemplo, o **Conselheiro Executivo de Carreira**, para QA no setor financeiro.
 
 ```bash
-mkdir -p ~/.claude/agents
-cp examples/agents/conselheiro-executivo.md ~/.claude/agents/
+mkdir -p ~/.claude/skills
+cp -r examples/skills/conselheiro-executivo ~/.claude/skills/
 ```
 
-Dentro de qualquer sessão do Claude Code:
+A skill fica disponível em todos os seus projetos e pode ser usada de dois jeitos:
 
-```
-Use o agente conselheiro-executivo: hoje reduzi o tempo da esteira de regressão de 4h para 12min.
-```
+- **Automático:** conte uma entrega, decisão, feedback ou compromisso, ou peça um 1:1. O Claude carrega a skill pela descrição dela.
+- **Explícito:**
+  ```
+  /conselheiro-executivo hoje reduzi o tempo da esteira de regressão de 4h para 12min
+  ```
 
-Para adaptar a outra área ou objetivo, copie o exemplo, troque o papel e as regras, e mantenha as chamadas às quatro ferramentas. O `/agents` do Claude Code lista e edita os agentes instalados.
+A skill roda na **conversa principal**. Por isso o Claude consegue perguntar a métrica que falta, mostrar o rascunho da entrega e esperar sua confirmação antes de gravar. Um subagente não serviria aqui: ele roda em contexto separado e só devolve um relatório final, sem pausar para perguntar nada.
 
-> Subagentes rodam em contexto próprio e devolvem um relatório ao final, sem diálogo intermediário. Se preferir o fluxo interativo (confirmar o registro antes de gravar, escolher a audiência do 1:1), carregue o mesmo arquivo na conversa principal:
-> `claude --append-system-prompt "$(cat ~/.claude/agents/conselheiro-executivo.md)"`
+Para outra área, copie a pasta, troque `name` e `description` no `SKILL.md` e ajuste o papel e as regras.
 
-## Alimentando o glossário
+## Visualizando no Obsidian
 
-O glossário é o que faz o agente falar a língua da sua empresa. Construa na conversa (o agente chama `mapear_conceito_dominio` sozinho) ou parta do exemplo do setor financeiro:
+1. Instale o [Obsidian](https://obsidian.md) (no Ubuntu: `.deb`, AppImage ou `flatpak install flathub md.obsidian.Obsidian`).
+2. **Abrir pasta como cofre** → selecione `data/`.
+3. Explore:
+   - **Visão de grafo** (`Ctrl+G`): conceitos e pessoas no centro, com entregas e decisões ligadas a eles. Nós cinza são termos citados que ainda não têm página.
+   - **Menções** (painel lateral) na página de um conceito: tudo que já foi feito ou decidido sobre ele.
+   - **Propriedades** no topo de cada nota: status, métrica, prazo, editáveis à mão.
+4. Opcional: copie o painel com tabelas automáticas e instale o plugin **Dataview**.
+   ```bash
+   cp examples/data-exemplo/Painel.md data/
+   ```
 
-```bash
-cp examples/dominio_financeiro.exemplo.json data/dominio_financeiro.json
-```
+Edições feitas no Obsidian são lidas pelo servidor na próxima chamada, sem precisar reiniciar nada.
 
-## Exemplos de uso
+### Exemplo pronto
 
-### Mapear o domínio
-
-```
-Você: Nossa empresa opera como BaaS e tem um motor de crédito white-label que
-      os parceiros configuram com as próprias políticas de risco.
-
-Agente: Mapeei dois conceitos:
-        - BaaS: principal linha de receita recorrente.
-        - Motor de crédito white-label: maior exposição a risco financeiro e regulatório.
-```
-
-### Bloqueio sem métrica
-
-```
-Você: Hoje criei 25 testes automatizados para o fluxo de análise de crédito.
-
-Agente: Ainda não posso registrar. "Criei 25 testes" descreve esforço, não impacto.
-        1. Se uma falha nesse fluxo chegasse em produção, qual seria o prejuízo?
-        2. Quanto tempo a validação manual levava antes?
-```
-
-### Registro com métrica
-
-```
-Você: A validação manual levava 4h por release. Agora roda em 12min na esteira.
-      Uma falha no fluxo de decisão de crédito gera inadimplência.
-
-Agente: [consulta o glossário]
-        - Situação: motor de crédito white-label validado manualmente a cada release.
-        - Tarefa: garantir a integridade das políticas de risco antes do deploy.
-        - Ação: suíte orientada a contrato sobre as políticas de risco, gerada com
-          apoio de IA e integrada à esteira com execução paralela por parceiro.
-        - Resultado: validação de 4h para 12min por release, cobertura contínua
-          do componente de maior exposição a risco.
-        - Métrica: redução de 95% no ciclo de validação + mitigação de risco
-          de inadimplência.
-        Confirma?
-
-Você: Confirmo.
-
-Agente: [registra o impacto] Registrado.
-```
-
-### Preparar o 1:1
-
-```
-Você: Gera meu brag document dos últimos 30 dias.
-
-Agente: O 1:1 é com liderança técnica ou executiva?
-
-Você: Gerente de Engenharia, hands-on.
-
-Agente: [gera o relatório]
-        # Brag Document - Últimos 30 dias
-        ...
-        ## Narrativa para o 1:1
-        Temas: testes de contrato no motor de crédito, paralelização da esteira,
-        aderência regulatória.
-        Abertura: "Neste mês ataquei o gargalo da esteira com testes de contrato
-        e execução paralela, reduzindo a exposição a risco do motor de crédito."
-```
+`examples/data-exemplo/` é um cofre de uma fintech fictícia, gerado pelo próprio servidor, com conceitos, pessoas, entregas, uma decisão, um feedback e um compromisso. Abra essa pasta como cofre para ver o grafo antes de ter os seus dados.
 
 ## Formato dos dados
 
-`career_log.json` é uma lista de registros:
-
-```json
-{ "data": "2026-09-11T10:32:00", "situacao": "...", "tarefa": "...",
-  "acao": "...", "resultado": "...", "metrica_negocio": "..." }
+```
+data/
+├── entregas/2026-07-22 Esteira de regressão de 4h para 12min.md
+├── decisoes/2026-08-05 Adotar segundo bureau de crédito como contingência.md
+├── feedbacks/2026-08-20 Comunicar riscos mais cedo.md
+├── compromissos/2026-09-05 Apresentar plano de testes do Q4.md
+├── conceitos/Motor de crédito white-label.md
+└── pessoas/Head de Engenharia.md
 ```
 
-`dominio_financeiro.json` é um dicionário indexado pelo termo em minúsculas:
+Conceitos e pessoas têm o nome exato do título, para que `[[Título]]` resolva no Obsidian. Os outros tipos levam a data na frente.
 
-```json
-{ "baas": { "termo_original": "BaaS", "definicao": "...",
-            "importancia_estrategica": "...", "data_mapeamento": "..." } }
+```markdown
+---
+id: 2026-07-22-esteira-de-regressao-de-4h-para-12min
+tipo: entrega
+titulo: Esteira de regressão de 4h para 12min
+data: 2026-07-22
+status: consolidado
+metrica: Redução de 95% no ciclo de validação
+metrica_categoria: tempo
+metrica_antes: 4h
+metrica_depois: 12min
+metrica_confianca: medido
+relacionados:
+- '[[Esteira de regressão]]'
+- '[[Motor de crédito white-label]]'
+tags:
+- ci-cd
+criado_em: '2026-09-11T17:02:10'
+atualizado_em: '2026-09-11T17:02:10'
+---
+
+**Situação:** a [[Esteira de regressão|esteira]] levava 4h por release...
 ```
+
+| Campo | Tipos | Significado |
+|---|---|---|
+| `id` | todos | Identificador estável (não muda ao renomear) |
+| `data` | todos | Quando o fato aconteceu |
+| `status` | entrega, compromisso | `aguardando_metrica`/`consolidado`; `aberto`/`concluido`/`cancelado` |
+| `metrica*` | entrega | Descrição executiva, categoria, antes, depois, `medido`/`estimado` |
+| `pessoa` | feedback, compromisso | Quem deu o feedback / para quem é o compromisso |
+| `prazo` | compromisso | Data limite |
+| `categoria` | conceito, pessoa, feedback | Tipo de conceito (`produto`, `sistema`, `kpi`, `carreira`...), cargo/área, `elogio`/`desenvolvimento` |
+| `aliases` | conceito, pessoa | Sinônimos e siglas |
+| `relacionados` | todos | Links para conceitos e pessoas |
+
+Notas sem `tipo` no frontmatter (como o `Painel.md`) são ignoradas pelo servidor.
 
 ## Estrutura
 
 ```
 mcp-career-tracker/
-├── server.py                                # Servidor MCP agnóstico
+├── server.py                                    # Servidor MCP: tools e prompts
 ├── requirements.txt
-├── data/                                    # JSONs locais (ignorados pelo git)
+├── data/                                        # Seus registros .md (ignorados pelo git)
+├── doc/casos-de-uso.md                          # Guia de uso com exemplos
 └── examples/
-    ├── agents/conselheiro-executivo.md      # Agente de exemplo, para ~/.claude/agents/
-    └── dominio_financeiro.exemplo.json      # Glossário de exemplo, setor financeiro
+    ├── skills/conselheiro-executivo/SKILL.md    # Skill de exemplo, para ~/.claude/skills/
+    └── data-exemplo/                            # Cofre Obsidian de exemplo + Painel.md
 ```

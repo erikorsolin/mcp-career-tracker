@@ -10,6 +10,9 @@
 # O extra [cli] instala o comando "mcp dev" e o MCP Inspector para depuração.
 mcp[cli]>=1.9.0,<2.0.0
 
+# Leitura e escrita do frontmatter YAML dos registros em Markdown.
+PyYAML>=6.0
+
 # FastMCP standalone (jlowin/fastmcp). Não é obrigatório para o server.py atual,
 # mas fica disponível para uma migração futura (from fastmcp import FastMCP).
 # A série 2.x é a compatível com mcp 1.x; a 3.x+ exige mcp 2.x.
