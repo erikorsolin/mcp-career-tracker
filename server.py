@@ -161,7 +161,7 @@ def como_link(nome: str, indice: dict[str, str]) -> str:
 
 
 def normalizar_links_corpo(corpo: str, indice: dict[str, str]) -> str:
-    """[[baas]] -> [[BaaS|baas]], para que aliases e variações de caixa resolvam no Obsidian."""
+    """[[portal]] -> [[Portal do Cliente|portal]], para que aliases e variações de caixa resolvam no Obsidian."""
     def trocar(m):
         alvo, ancora, rotulo = m.group(1).strip(), m.group(2) or "", m.group(3)
         canonico = indice.get(normalizar(alvo))

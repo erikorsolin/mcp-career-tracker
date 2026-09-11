@@ -13,14 +13,14 @@ Cada registro é um arquivo Markdown. A pasta `data/` pode ser aberta no [Obsidi
 Você só precisa fazer três coisas, sempre em linguagem natural:
 
 1. **Contar o que aconteceu.** O Claude decide se é entrega, decisão, feedback, compromisso, conceito ou pessoa.
-2. **Perguntar.** "O que já fiz no motor de crédito?", "Por que trocamos de bureau?"
+2. **Perguntar.** "O que já fiz na API de Integrações?", "Por que trocamos de provedor de autenticação?"
 3. **Pedir um documento.** "Prepara meu 1:1", "Relatório do trimestre", "Dossiê para promoção".
 
 ```
-Você:   hoje a diretoria decidiu contratar um segundo bureau de crédito por risco de indisponibilidade
-Claude: registrei como decisão, ligada a [[Bureau de crédito]] e [[BACEN]].
+Você:   hoje a diretoria decidiu contratar um segundo provedor de autenticação por risco de indisponibilidade
+Claude: registrei como decisão, ligada a [[Provedor de autenticação]] e [[Portal do Cliente]].
 
-Você:   terminei o monitoramento sintético do bureau, ainda não tenho números
+Você:   terminei o monitoramento sintético do provedor de autenticação, ainda não tenho números
 Claude: registrei a entrega como "aguardando métrica". Ela fica nas pendências até ter o número.
 
 Você:   prepara meu 1:1 de amanhã com a liderança técnica
@@ -43,13 +43,13 @@ O servidor é agnóstico a área, empresa e setor. Para trocar de contexto, troq
 |---|---|
 | `registrar(tipo, titulo, conteudo, ...)` | Cria um registro. Tipos: `entrega`, `decisao`, `feedback`, `compromisso`, `conceito`, `pessoa`. Aceita `data` passada, `metrica`, `relacionados`, `prazo`, `pessoa`, `categoria`, `aliases`, `tags`. |
 | `atualizar(id, ...)` | Altera só os campos informados. `acrescentar` adiciona uma seção datada sem apagar o histórico. Renomear um conceito ou pessoa corrige os links em todos os registros. |
-| `buscar(texto, tipo, de, ate, status, relacionado, detalhado, limite)` | Consulta com filtros combináveis. `relacionado="BaaS"` traz tudo que cita o BaaS. |
+| `buscar(texto, tipo, de, ate, status, relacionado, detalhado, limite)` | Consulta com filtros combináveis. `relacionado="Portal do Cliente"` traz tudo que cita o Portal do Cliente. |
 | `pendencias()` | Entregas aguardando métrica, compromissos em aberto (vencidos e próximos) e termos citados sem página no glossário. |
 
 Regras do próprio servidor, que valem com ou sem a skill:
 - entrega sem `metrica` fica com status `aguardando_metrica`;
 - conceitos e pessoas não são sobrescritos (nem por alias);
-- `[[baas]]` é gravado como `[[BaaS|baas]]`, para que aliases e variações de maiúsculas resolvam no Obsidian.
+- `[[portal]]` é gravado como `[[Portal do Cliente|portal]]`, para que aliases e variações de maiúsculas resolvam no Obsidian.
 
 ## Prompts (relatórios prontos)
 
@@ -97,7 +97,7 @@ Variável de ambiente opcional (passe com `-e NOME=valor` no `claude mcp add`):
 
 ## Instalando a skill
 
-A skill ensina o Claude a usar o servidor: quando registrar cada tipo de fato, como escrever uma entrega em STAR, quando exigir métrica e como montar um 1:1. Este repositório traz um exemplo, o **Conselheiro Executivo de Carreira**, para QA no setor financeiro.
+A skill ensina o Claude a usar o servidor: quando registrar cada tipo de fato, como escrever uma entrega em STAR, quando exigir métrica e como montar um 1:1. Este repositório traz um exemplo, o **Conselheiro Executivo de Carreira**, para quem trabalha com tecnologia.
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -109,7 +109,7 @@ A skill fica disponível em todos os seus projetos e pode ser usada de dois jeit
 - **Automático:** conte uma entrega, decisão, feedback ou compromisso, ou peça um 1:1. O Claude carrega a skill pela descrição dela.
 - **Explícito:**
   ```
-  /conselheiro-executivo hoje reduzi o tempo da esteira de regressão de 4h para 12min
+  /conselheiro-executivo hoje reduzi o tempo de deploy de 40min para 8min
   ```
 
 A skill roda na **conversa principal**. Por isso o Claude consegue perguntar a métrica que falta, mostrar o rascunho da entrega e esperar sua confirmação antes de gravar. Um subagente não serviria aqui: ele roda em contexto separado e só devolve um relatório final, sem pausar para perguntar nada.
@@ -124,26 +124,18 @@ Para outra área, copie a pasta, troque `name` e `description` no `SKILL.md` e a
    - **Visão de grafo** (`Ctrl+G`): conceitos e pessoas no centro, com entregas e decisões ligadas a eles. Nós cinza são termos citados que ainda não têm página.
    - **Menções** (painel lateral) na página de um conceito: tudo que já foi feito ou decidido sobre ele.
    - **Propriedades** no topo de cada nota: status, métrica, prazo, editáveis à mão.
-4. Opcional: copie o painel com tabelas automáticas e instale o plugin **Dataview**.
-   ```bash
-   cp examples/data-exemplo/Painel.md data/
-   ```
 
 Edições feitas no Obsidian são lidas pelo servidor na próxima chamada, sem precisar reiniciar nada.
-
-### Exemplo pronto
-
-`examples/data-exemplo/` é um cofre de uma fintech fictícia, gerado pelo próprio servidor, com conceitos, pessoas, entregas, uma decisão, um feedback e um compromisso. Abra essa pasta como cofre para ver o grafo antes de ter os seus dados.
 
 ## Formato dos dados
 
 ```
 data/
-├── entregas/2026-07-22 Esteira de regressão de 4h para 12min.md
-├── decisoes/2026-08-05 Adotar segundo bureau de crédito como contingência.md
+├── entregas/2026-07-22 Deploy de 40min para 8min.md
+├── decisoes/2026-08-05 Adotar segundo provedor de autenticação como contingência.md
 ├── feedbacks/2026-08-20 Comunicar riscos mais cedo.md
 ├── compromissos/2026-09-05 Apresentar plano de testes do Q4.md
-├── conceitos/Motor de crédito white-label.md
+├── conceitos/API de Integrações.md
 └── pessoas/Head de Engenharia.md
 ```
 
@@ -151,26 +143,26 @@ Conceitos e pessoas têm o nome exato do título, para que `[[Título]]` resolva
 
 ```markdown
 ---
-id: 2026-07-22-esteira-de-regressao-de-4h-para-12min
+id: 2026-07-22-deploy-de-40min-para-8min
 tipo: entrega
-titulo: Esteira de regressão de 4h para 12min
+titulo: Deploy de 40min para 8min
 data: 2026-07-22
 status: consolidado
-metrica: Redução de 95% no ciclo de validação
+metrica: Redução de 80% no tempo de deploy
 metrica_categoria: tempo
-metrica_antes: 4h
-metrica_depois: 12min
+metrica_antes: 40min
+metrica_depois: 8min
 metrica_confianca: medido
 relacionados:
-- '[[Esteira de regressão]]'
-- '[[Motor de crédito white-label]]'
+- '[[Pipeline de deploy]]'
+- '[[Portal do Cliente]]'
 tags:
 - ci-cd
 criado_em: '2026-09-11T17:02:10'
 atualizado_em: '2026-09-11T17:02:10'
 ---
 
-**Situação:** a [[Esteira de regressão|esteira]] levava 4h por release...
+**Situação:** o [[Pipeline de deploy|pipeline]] levava 40min por deploy...
 ```
 
 | Campo | Tipos | Significado |
@@ -185,7 +177,7 @@ atualizado_em: '2026-09-11T17:02:10'
 | `aliases` | conceito, pessoa | Sinônimos e siglas |
 | `relacionados` | todos | Links para conceitos e pessoas |
 
-Notas sem `tipo` no frontmatter (como o `Painel.md`) são ignoradas pelo servidor.
+Notas sem `tipo` no frontmatter são ignoradas pelo servidor, então você pode criar notas livres no mesmo cofre.
 
 ## Estrutura
 
@@ -196,6 +188,5 @@ mcp-career-tracker/
 ├── data/                                        # Seus registros .md (ignorados pelo git)
 ├── doc/casos-de-uso.md                          # Guia de uso com exemplos
 └── examples/
-    ├── skills/conselheiro-executivo/SKILL.md    # Skill de exemplo, para ~/.claude/skills/
-    └── data-exemplo/                            # Cofre Obsidian de exemplo + Painel.md
+    └── skills/conselheiro-executivo/SKILL.md    # Skill de exemplo, para ~/.claude/skills/
 ```

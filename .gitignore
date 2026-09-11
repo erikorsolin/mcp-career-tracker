@@ -15,7 +15,7 @@ data/**
 !data/.gitkeep
 # Relatórios exportados eventualmente
 brag_document*.md
-# Configuração local do Obsidian (ex: ao abrir examples/data-exemplo como cofre)
+# Configuração local do Obsidian, caso alguma pasta do repositório seja aberta como cofre
 .obsidian/
 .trash/
 
